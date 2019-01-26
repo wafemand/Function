@@ -15,9 +15,7 @@ struct Function<R(Args...)> {
 
     Function() noexcept : Function(nullptr) {}
 
-    Function(std::nullptr_t) noexcept : concept() {
-        isSmall = false;
-    }
+    Function(std::nullptr_t) noexcept : concept(), isSmall(false) {}
 
     Function(Function const &other) {
         isSmall = other.isSmall;
@@ -28,19 +26,15 @@ struct Function<R(Args...)> {
         }
     }
 
-    Function(Function &&other) noexcept {
-        if (other.isSmall) {
-            other.get_concept()->placement_move(buf);
-        } else {
-            concept = std::move(other.concept);
-        }
-        isSmall = std::move(other.isSmall);
+    Function(Function &&other) noexcept : Function(nullptr) {
+        move(std::move(other));
     }
 
     template<typename F>
     Function(F f) : concept(nullptr) {
-        isSmall = sizeof(f) < BUF_SIZE;
-        if (isSmall) {
+        const bool throwable = noexcept(std::move(f));
+        isSmall = (sizeof(f) < BUF_SIZE && !throwable);
+        if constexpr (sizeof(f) < BUF_SIZE && !throwable) {
             new(buf) Model<F>(std::move(f));
         } else {
             concept = std::make_unique<Model < F> > (std::move(f));
@@ -64,8 +58,8 @@ struct Function<R(Args...)> {
 
     void swap(Function &other) noexcept {
         Function temp(std::move(*this));
-        new (this) Function(std::move(other));
-        new (&other) Function(std::move(temp));
+        move(std::move(other));
+        other.move(std::move(temp));
     }
 
     operator bool() {
@@ -74,6 +68,15 @@ struct Function<R(Args...)> {
 
     R operator()(Args ...args) const {
         return get_concept()->invoke(args...);
+    }
+
+    void move(Function &&other) noexcept {
+        if (other.isSmall) {
+            other.get_concept()->placement_move(buf);
+        } else {
+            concept = std::move(other.concept);
+        }
+        isSmall = other.isSmall;
     }
 
     void destroy() {
@@ -110,6 +113,7 @@ struct Function<R(Args...)> {
         void placement_move(void *ptr) noexcept {
             new(ptr) Model<F>(std::move(f));
         }
+
 
         F f;
     };

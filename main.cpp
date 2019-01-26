@@ -97,6 +97,36 @@ void test_swap() {
     assert(g() == 42);
 }
 
+bool shouldThrow = false;
+
+struct MoveThrow {
+
+    MoveThrow() = default;
+
+    MoveThrow(MoveThrow const &) {}
+
+    MoveThrow(MoveThrow &&) {
+        if (shouldThrow) {
+            throw runtime_error("move");
+        }
+    }
+
+    int operator()() const {
+        return 42;
+    }
+};
+
+void test_move_throw() {
+    shouldThrow = false;
+    Function<int()> f = MoveThrow();
+    shouldThrow = true;
+    try {
+        Function<int()> g(std::move(f));
+    } catch (...) {
+        assert(false);
+    }
+}
+
 int main() {
     test_function_pointer();
     test_lambda();
@@ -104,4 +134,5 @@ int main() {
     test_copy_small();
     test_move_big();
     test_move_small();
+    test_move_throw();
 }
