@@ -111,7 +111,7 @@ struct MoveThrow {
         }
     }
 
-    int operator()() const {
+    int operator()() {
         return 42;
     }
 };

@@ -116,7 +116,7 @@ struct Function<R(Args...)> {
         }
 
 
-        F f;
+        mutable F f;
     };
 
     const Concept *get_concept() const {
