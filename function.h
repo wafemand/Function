@@ -45,8 +45,9 @@ struct Function<R(Args...)> {
         destroy();
     }
 
-    Function &operator=(Function other) {
-        swap(other);
+    Function &operator=(Function const &other) {
+        Function copy(other);
+        swap(copy);
         return *this;
     }
 
